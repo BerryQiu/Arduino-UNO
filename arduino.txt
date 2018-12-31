@@ -1,0 +1,56 @@
+#include <OneWire.h>
+#include <DallasTemperature.h>
+
+const int tempPin = 2;     // (1)
+const int heatPin = 9;
+const int redPin = 6;
+const long period = 500;  // (2)
+
+OneWire oneWire(tempPin);  // (3)
+DallasTemperature sensors(&oneWire);
+
+float setTemp = 0.0;       // (4)
+long lastSampleTime = 0;
+
+void setup() {  
+  pinMode(heatPin, OUTPUT);
+  Serial.begin(9600);
+  Serial.println("t30 - sets the temperature to 30");
+  sensors.begin();        // (5)
+}
+
+void loop() { 
+  if (Serial.available()) {     // (6)
+    char command = Serial.read();
+    if (command == 't') {
+      setTemp = Serial.parseInt();
+      Serial.print("Set Temp=");
+      Serial.println(setTemp);
+    }
+  }
+  long now = millis();         // (7)
+  if (now > lastSampleTime + period) {
+    lastSampleTime = now;
+    float measuredTemp = readTemp();    // (8)
+    float error = setTemp - measuredTemp;
+    Serial.print("N");
+    Serial.println(measuredTemp);
+    Serial.print("S");
+    Serial.println(setTemp);
+    if (error > 0) {                    // (9)
+        digitalWrite(heatPin, HIGH);
+        digitalWrite(redPin, HIGH);
+        Serial.println("heat");
+    }
+    else {
+      digitalWrite(heatPin, LOW);
+      digitalWrite(redPin, LOW);
+      Serial.println("noheat");
+    }
+  }
+}
+
+float readTemp() {     // (10)
+  sensors.requestTemperatures(); 
+  return sensors.getTempCByIndex(0);  
+}
